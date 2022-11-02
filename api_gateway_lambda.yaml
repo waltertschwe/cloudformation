@@ -8,11 +8,13 @@ Parameters:
     Type: String
     Default: mam-secret-service
   AppPoolClientIDParameter:
-    Description: Cliend id from App Pool.
+    Description: Cliend id from App Pool. Used for JWT Authorizer not yet implemented.
     Type: String
+    Default: ""
   AppPoolIDParameter:
-    Description: App Pool Id.
+    Description: App Pool Id. Used for JWT Authorizer not yet implemented.
     Type: String
+    Default: ""
   PostScopeParameter:
     Description: The authorization scope supported for POST route.
     Type: String
@@ -22,7 +24,7 @@ Parameters:
     Default: get-secret
 
 Resources:
-  MicroserviceLambdaFunctionRole:
+  MamSecretLambdaFunctionRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,7 +37,7 @@ Resources:
             Service:
             - lambda.amazonaws.com
       Policies:
-      - PolicyName: MicroserviceLambdaFunctionRolePolicy1
+      - PolicyName: MamSecretLambdaFunctionRolePolicy
         PolicyDocument:
           Statement:
           - Effect: Allow
@@ -49,30 +51,30 @@ Resources:
       - Value:
           Ref: TagParameter
         Key: application
-  MicroserviceLambdaFunctionResource:
+  MamLambdaFunctionResource:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: getSecretLambda
       Role:
         Fn::GetAtt:
-        - MicroserviceLambdaFunctionRole
+        - MamSecretLambdaFunctionRole
         - Arn
       Handler: index.lambda_handler
       Code:
-        ZipFile: "exports.lambda_handler = async (event) => {\nconst response = {\nstatusCode: 200,\nbody: JSON.stringify('Hello from Lambda!'),\n};\nreturn response;\n};\n"
+        ZipFile: "exports.lambda_handler = async (event) => {\nconst response = {\nstatusCode: 200,\nbody: JSON.stringify('Hello Mam Secret Service!'),\n};\nreturn response;\n};\n"
       Runtime: nodejs16.x
       Timeout: 30
       Tags:
       - Value:
           Ref: TagParameter
         Key: application
-  MicroserviceLambdaFunctioPermissionResource:
+  MamSecretLambdaFunctioPermissionResource:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       FunctionName:
-        Ref: MicroserviceLambdaFunctionResource
+        Ref: MamLambdaFunctionResource
       SourceArn:
         Fn::Sub:
         - arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${__ApiId__}/${__Stage__}/*/get-secret
@@ -87,7 +89,7 @@ Resources:
       ProtocolType: HTTP
       Target:
         Fn::GetAtt:
-        - MicroserviceLambdaFunctionResource
+        - MamLambdaFunctionResource
         - Arn
       Tags:
         Value:
@@ -121,7 +123,7 @@ Resources:
       IntegrationType: AWS_PROXY
       IntegrationUri:
         Fn::GetAtt:
-        - MicroserviceLambdaFunctionResource
+        - MamLambdaFunctionResource
         - Arn
       ConnectionType: INTERNET
       PayloadFormatVersion: '2.0'
@@ -152,14 +154,14 @@ Resources:
     - HTTPApiResource
     - HTTPApiIntegrationResource
 Outputs:
-  MicroserviceLambdaFunctionArn:
+  MamLambdaFunctionArn:
     Value:
       Fn::GetAtt:
-      - MicroserviceLambdaFunctionResource
+      - MamLambdaFunctionResource
       - Arn
-  MicroserviceLambdaFunctionName:
+  MamLambdaFunctionName:
     Value:
-      Ref: MicroserviceLambdaFunctionResource
-  MicroserviceLambdaFunctionRoleName:
+      Ref: MamLambdaFunctionResource
+  MamSecretLambdaFunctionRoleName:
     Value:
-      Ref: MicroserviceLambdaFunctionRole
+      Ref: MamSecretLambdaFunctionRole
