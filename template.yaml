@@ -61,11 +61,8 @@ Resources:
         Ref: InputRefreshTokenValidity
       SupportedIdentityProviders:
       - COGNITO
-      AllowedOAuthScopes:
-      - Fn::Join:
-        - "/"
-        - - Ref: InputUserPoolName
-          - read_secret_operation
+      AllowedOAuthScopes: 
+      - !Join [ "/", [Ref: InputUserPoolName, read_secret_operation]]
       UserPoolId:
         Ref: UserPoolResource
     DependsOn:
@@ -111,8 +108,10 @@ Resources:
             - logs:CreateLogGroup
             - logs:CreateLogStream
             - logs:PutLogEvents
+            - secretsmanager:GetSecretValue
             Resource:
             - arn:aws:logs:*:*:*
+            - "*"
       Tags:
       - Value:
           Ref: InputApplicationTagName
@@ -203,7 +202,7 @@ Resources:
       ApiId:
         Ref: HTTPApiResource
       AuthorizationScopes:
-        - read_secret_operation
+        - !Join [ "/", [Ref: InputUserPoolName, read_secret_operation]]
       AuthorizationType: JWT
       RouteKey:
         Fn::Join:
