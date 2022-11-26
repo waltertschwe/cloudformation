@@ -117,6 +117,15 @@ Resources:
           Ref: InputApplicationTagName
         Key: application
 
+  MyLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt 
+        - MamLambdaFunctionResource
+        - Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: elasticloadbalancing.amazonaws.com
+
   MamLambdaFunctionResource:
     Type: AWS::Lambda::Function
     Properties:
@@ -148,6 +157,48 @@ Resources:
         - __Stage__: "*"
           __ApiId__:
             Ref: HTTPApiResource
+
+  # Application Load Balancer
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Tags:
+        - Key: InputApplicationTagName
+          Value: !Ref InputApplicationTagName
+        - Key: Env
+          Value: !Ref Environment
+      IpAddressType: ipv4
+      Scheme: internal
+      Type: application
+      Subnets:
+        - subnet-8d72dfa6
+        - subnet-74442303
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Order: 1
+          TargetGroupArn: !Ref Targets
+          Type: forward
+      LoadBalancerArn: !Ref ALB
+      Port: 80
+      Protocol: HTTP
+
+      # TODO: this should be updated to HTTPs
+      # will need a certicate.
+      # Port: 443
+      # Certificates:
+      #   - CertificateArn: !Ref CertificateArn
+      # Protocol: TLS
+  Targets:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: false
+      Name: TargetSecretLambda
+      TargetType: lambda
+      Targets:
+      - Id: !GetAtt [ MamLambdaFunctionResource, Arn ]
 
   # Start API Gateway Resources
   HTTPApiResource:
@@ -186,15 +237,23 @@ Resources:
       ApiId:
         Ref: HTTPApiResource
       Description: Lambda Integration
-      IntegrationType: AWS_PROXY
-      IntegrationUri:
-        Fn::GetAtt:
-        - MamLambdaFunctionResource
-        - Arn
-      ConnectionType: INTERNET
-      PayloadFormatVersion: '2.0'
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: !Ref Listener
+        # Fn::GetAtt:
+        # - MamLambdaFunctionResource
+        # - Arn
+      ConnectionType: VPC_LINK
+      ConnectionId: !Ref HTTPVpcLink
+      PayloadFormatVersion: '1.0'
     DependsOn:
     - HTTPApiResource
+
+  HTTPVpcLink:
+    Type: AWS::ApiGatewayV2::VpcLink
+    Properties: 
+      Name: SecretServiceVpcLink
+      SubnetIds: 
+        - subnet-8d72dfa6
 
   HTTPApiPostRouteResource:
     Type: AWS::ApiGatewayV2::Route
