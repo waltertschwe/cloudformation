@@ -157,6 +157,7 @@ Resources:
         - __Stage__: "*"
           __ApiId__:
             Ref: HTTPApiResource
+  
 
   # Application Load Balancer
   ALB:
