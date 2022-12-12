@@ -37,7 +37,7 @@ const handler = async (event, context) => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({"error": "Could not find secret value for secret name:" + secretName})
+            body: JSON.stringify({"error": "Could not find secret value for secret name: " + secretName})
         }
     }
 };
